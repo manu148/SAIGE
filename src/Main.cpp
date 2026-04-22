@@ -128,6 +128,7 @@ std::ofstream OutFile;
 std::ofstream OutFile_singleInGroup;
 std::ofstream OutFile_single;
 std::ofstream OutFile_singleInGroup_temp;
+std::ofstream OutFile_burdenValuesWide;
 
 
 std::string g_outputFilePrefixGroup;
@@ -135,7 +136,7 @@ std::string g_outputFilePrefixSingleInGroup;
 std::string g_outputFilePrefixSingleInGroup_temp;
 std::string g_outputFilePrefixSingle;
 
-
+std::vector<std::string> g_SampleInModel;
 
 
 
@@ -855,6 +856,7 @@ void setPLINKobjInCPP(std::string t_bimFile,
                       std::vector<std::string> & t_SampleInModel,
                       std::string t_AlleleOrder)
 {
+  g_SampleInModel = t_SampleInModel;
   ptr_gPLINKobj = new PLINK::PlinkClass(t_bimFile,
                                         t_famFile,
                                         t_bedFile,
@@ -870,6 +872,7 @@ void setPGENobjInCPP(std::string pgenFile,
                      std::string pvarFile,
                      std::vector<std::string>& sampleInModel)
 {
+  g_SampleInModel = sampleInModel;
   ptr_gPGENobj = new PGEN::PgenClass(pgenFile,
                                      psamFile,
                                      pvarFile,
@@ -883,6 +886,7 @@ void setBGENobjInCPP(std::string t_bgenFileName,
                      std::vector<std::string> & t_SampleInModel,
                      std::string t_AlleleOrder)
 {
+  g_SampleInModel = t_SampleInModel;
   std::cout << "t_SampleInBgen " << t_SampleInBgen.size() << std::endl;
   ptr_gBGENobj = new BGEN::BgenClass(t_bgenFileName,
                                      t_bgenFileIndex,
@@ -1053,6 +1057,7 @@ Rcpp::List mainRegionInCPP(
 {
 
 
+  Rcpp::Rcout << "t_regionTestType=" << t_regionTestType << "\n";
   //create the output list
   Rcpp::List OutList = Rcpp::List::create();
   //arma::vec timeoutput1 = getTime();
@@ -1937,6 +1942,8 @@ if(t_regionTestType == "BURDEN"){
 	   BURDEN_Beta_Vec.at(i) = Beta;
 	   BURDEN_seBeta_Vec.at(i) = seBeta;
 
+     writeOutfile_BURDEN_values_wide(regionName, AnnoName, BURDEN_maxMAFName_Vec.at(i), genoSumVec);
+
          }else{
 	   isPolyMarker = false;	 
 	 }
@@ -2179,10 +2186,11 @@ OutList.push_back(iswriteOutput, "iswriteOutput");
 }
 
 
-
-
-
-
+void closeOutfile_BURDEN_values_wide(){
+    if(OutFile_burdenValuesWide.is_open()){
+        OutFile_burdenValuesWide.close();
+    }
+}
 
 
 // [[Rcpp::export]]
@@ -2501,6 +2509,7 @@ void closeGenoFile(std::string & t_genoType)
 
 // [[Rcpp::export]]
 bool openOutfile(std::string t_traitType, bool isappend){
+  openOutfile_BURDEN_values_wide(isappend);
 	bool isopen;
 	if(!isappend){
 	OutFile.open(g_outputFilePrefixGroup.c_str());
@@ -2580,6 +2589,31 @@ bool openOutfile_singleinGroup(std::string t_traitType, bool t_isImputation, boo
     //  OutFile_singleInGroup_temp.open(g_outputFilePrefixSingleInGroup_temp.c_str(), std::ofstream::out | std::ofstream::app);
     //}
       return(isopen);
+}
+
+// [[Rcpp::export]]
+bool openOutfile_BURDEN_values_wide(bool isappend)
+{
+    std::string fn = g_outputFilePrefixGroup + "_burden.csv";
+    std::cout << "Creating file" <<  fn << std::endl;
+    Rcpp::Rcout << "Creating file" <<  fn << std::endl;
+
+    if(!isappend){
+        OutFile_burdenValuesWide.open(fn.c_str());
+        if(!OutFile_burdenValuesWide.is_open()) return false;
+        std::cout << "Writing header file" <<  fn << std::endl;
+        OutFile_burdenValuesWide << "Region,Anno,max_MAF";
+        for(size_t i = 0; i < g_SampleInModel.size(); i++){
+            OutFile_burdenValuesWide << "," << g_SampleInModel[i];
+        }
+        OutFile_burdenValuesWide << "\n";
+
+    }else{
+        OutFile_burdenValuesWide.open(fn.c_str(), std::ofstream::out | std::ofstream::app);
+        if(!OutFile_burdenValuesWide.is_open()) return false;
+    }
+
+    return true;
 }
 
 
@@ -2889,6 +2923,33 @@ void writeOutfile_BURDEN(std::string regionName,
      OutFile << "NA\t";
      OutFile << "NA\n";	
 }
+
+void writeOutfile_BURDEN_values_wide(
+        std::string regionName,
+        std::string annoName,
+        std::string maxMAFName,
+        arma::vec & genoSumVec){
+    if(!OutFile_burdenValuesWide.is_open()){
+        return;
+    }
+
+    unsigned int n = genoSumVec.n_elem;
+    if(g_SampleInModel.size() != n){
+        std::cerr << "ERROR: g_SampleInModel size (" << g_SampleInModel.size()
+                  << ") != genoSumVec length (" << n << ")\n";
+        return;
+    }
+
+    // First 3 columns
+    OutFile_burdenValuesWide << regionName << "," << annoName << "," << maxMAFName;
+
+    // Then all sample burdens
+    for(unsigned int i = 0; i < n; i++){
+        OutFile_burdenValuesWide << "," << genoSumVec(i);
+    }
+    OutFile_burdenValuesWide << "\n";
+}
+
 
 
 int writeOutfile_singleInGroup(bool t_isMoreOutput,

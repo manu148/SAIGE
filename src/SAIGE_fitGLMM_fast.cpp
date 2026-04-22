@@ -13,6 +13,7 @@
 #include <cassert>
 #include <boost/date_time.hpp> // for gettimeofday and timeval
 #include "getMem.hpp"
+#include <tbb/concurrent_vector.h>
 using namespace Rcpp;
 using namespace std;
 using namespace RcppParallel;

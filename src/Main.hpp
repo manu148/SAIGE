@@ -218,6 +218,8 @@ void closeGenoFile(std::string & t_genoType);
 
 bool openOutfile(std::string t_traitType, bool isappend);
 
+bool openOutfile_BURDEN_values_wide(bool isappend);
+
 
 bool openOutfile_singleinGroup(std::string t_traitType, bool t_isImputation, bool isappend, bool t_isMoreOutput);
 
@@ -331,6 +333,11 @@ void writeOutfile_BURDEN(std::string regionName,
                         bool isCondition,
                         std::string t_traitType);
 
+void writeOutfile_BURDEN_values_wide(std::string regionName,
+                                    std::string annoName,
+                                    std::string maxMAFName,
+                                    arma::vec & genoSumVec);
+
 void copy_singleInGroup();
 
 void set_varianceRatio(double MAC, bool isSingleVarianceRatio);
@@ -377,5 +384,7 @@ int writeOutfile_singleInGroup(bool t_isMoreOutput,
 
 uint32_t Unified_getSampleSizeinGeno(std::string & t_genoType);
 uint32_t Unified_getSampleSizeinAnalysis(std::string & t_genoType);
+
+void closeOutfile_BURDEN_values_wide();
 
 #endif
