@@ -9,7 +9,7 @@ ENV OMP_NUM_THREADS=1
 ENV PIXI_NO_PATH_UPDATE=1
 
 RUN apt-get update -qq && \
-    apt-get -y install curl time \
+    apt-get -y install curl time unzip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -27,8 +27,13 @@ RUN curl -L https://github.com/chrchang/plink-ng/archive/refs/tags/v2.0.0-a.6.16
 
 RUN pixi run R CMD INSTALL .
 
-RUN mv extdata/step1_fitNULLGLMM.R extdata/step2_SPAtests.R extdata/step3_LDmat.R extdata/createSparseGRM.R /usr/local/bin/ && \
-   chmod a+x /usr/local/bin/step1_fitNULLGLMM.R /usr/local/bin/step2_SPAtests.R /usr/local/bin/step3_LDmat.R /usr/local/bin/createSparseGRM.R && \
+RUN curl -L https://s3.amazonaws.com/plink2-assets/alpha6/plink2_linux_x86_64_20260228.zip -o plink2.zip && \
+    unzip plink2.zip -d /usr/local/bin/ && \
+    chmod a+x /usr/local/bin/plink2 && \
+    rm plink2.zip
+
+RUN mv extdata/step1_fitNULLGLMM.R extdata/step2_SPAtests.R extdata/step3_LDmat.R extdata/createSparseGRM.R extdata/run_RareEffect.R extdata/calculate_RareEffect_PRS.R /usr/local/bin/ && \
+   chmod a+x /usr/local/bin/step1_fitNULLGLMM.R /usr/local/bin/step2_SPAtests.R /usr/local/bin/step3_LDmat.R /usr/local/bin/createSparseGRM.R /usr/local/bin/calculate_RareEffect_PRS.R /usr/local/bin/run_RareEffect.R  && \
    createSparseGRM.R --help && \
    step1_fitNULLGLMM.R --help && \
    step2_SPAtests.R --help && \

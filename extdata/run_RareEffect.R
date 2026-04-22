@@ -1,3 +1,5 @@
+#!/usr/bin/env -S pixi run --manifest-path /app/pixi.toml Rscript
+
 # Read source and libraries
 library(SAIGE)
 library(data.table)
@@ -23,22 +25,27 @@ option_list <- list(
         help="Path to fam file containing rare variants"),
     make_option(c("--macThreshold"), type="integer", default=10,
         help="MAC threshold for ultra-rare variant collapsing (default: 10)"),
-    make_option(c("--collapseLoF"), type="logical", default=FALSE,
-        help="Collapse LoF variants into one super-variant (default: FALSE)"),
-    make_option(c("--collapsemis"), type="logical", default=FALSE,
-        help="Collapse missense variants into one super-variant (default: FALSE)"),
-    make_option(c("--collapsesyn"), type="logical", default=FALSE,
-        help="Collapse synonymous variants into one super-variant (default: FALSE)"),
+    make_option(c("--collapseGroups"), type="character", default="",
+        help="Comma-separated list of group names to collapse into super-variants (e.g. 'lof,missense'). Default: none collapsed."),
     make_option(c("--apply_AR"), type="logical", default=FALSE,
-        help="Apply adaptive ridge (approximated L0-regularization) when estimating effect size (defualt: FALSE)"),
+        help="Apply adaptive ridge (approximated L0-regularization) when estimating effect size (default: FALSE)"),
     make_option(c("--outputPrefix"), type="character", default="",
-        help="Path to save output (without extension and gene name)")
+        help="Path to save output (without extension and gene name)"),
+    make_option(c("--groups"), type="character", default="lof,missense,synonymous",
+        help="Comma-separated list of annotation group labels to analyze (default: 'lof,missense,synonymous')")
 )
 
 ## list of options
 parser <- OptionParser(usage="%prog [options]", option_list=option_list)
 args <- parse_args(parser, positional_arguments = FALSE)
 print(args)
+
+# Parse collapseGroups into a named logical vector
+collapseGroups <- NULL
+if (nchar(args$collapseGroups) > 0) {
+    collapse_names <- trimws(strsplit(args$collapseGroups, ",")[[1]])
+    collapseGroups <- setNames(rep(TRUE, length(collapse_names)), collapse_names)
+}
 
 run_RareEffect(
     rdaFile = args$rdaFile,
@@ -50,9 +57,8 @@ run_RareEffect(
     bimFile = args$bimFile,
     famFile = args$famFile,
     macThreshold = args$macThreshold,
-    collapseLoF = args$collapseLoF,
-    collapsemis = args$collapsemis,
-    collapsesyn = args$collapsesyn,
+    collapseGroups = collapseGroups,
     apply_AR = args$apply_AR,
-    outputPrefix = args$outputPrefix
+    outputPrefix = args$outputPrefix,
+    groups = args$groups
 )
